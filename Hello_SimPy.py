@@ -1,4 +1,3 @@
-# Simpybasics.py
 import simpy
 
 def hello_simpy(env):
@@ -7,11 +6,11 @@ def hello_simpy(env):
         # Wait for 1 time unit
         yield env.timeout(1)
 
-# Create a simulation environment
+# Create the SimPy environment
 env = simpy.Environment()
 
-# Start the hello_simpy process
+# Start the process
 env.process(hello_simpy(env))
 
-# Run the simulation for 5 time units
-env.run(until=5)
+# Run the simulation for 10 time units
+env.run(until=10)
