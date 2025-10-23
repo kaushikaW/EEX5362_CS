@@ -35,6 +35,7 @@ def get_basket_size(basket_behavior="normal"):
     return random.choices(sizes, weights=weights, k=1)[0]
 
 # -------------------- Simulation Function --------------------
+
 def run_simulation(sim_duration=DEFAULT_SIM_DURATION,
                    num_cashiers=DEFAULT_NUM_CASHIERS,
                    arrival_rate=DEFAULT_ARRIVAL_RATE,
@@ -47,8 +48,8 @@ def run_simulation(sim_duration=DEFAULT_SIM_DURATION,
 
     customers_served = 0
     total_items_served = 0
-    queue_lengths = []
-    wait_times = []
+    queue_lengths = [] # Track queue lengths over time
+    wait_times = [] # Track individual wait times
     cashier_busy_time = [0.0] * num_cashiers  # Track busy time per cashier
 
     def customer(env, name, cashier):
@@ -59,6 +60,7 @@ def run_simulation(sim_duration=DEFAULT_SIM_DURATION,
 
         print(f"{name} arrived at {arrival_time:.1f} mins with {basket_size} items")
 
+        # Request service from cashier
         with cashier.request() as req:
             yield req
             wait_time = env.now - arrival_time
@@ -89,6 +91,7 @@ def run_simulation(sim_duration=DEFAULT_SIM_DURATION,
     env.process(monitor_queue(env, cashier))
     env.run(until=sim_duration)
 
+    # -------------------- Calculate Performance Metrics --------------------
     avg_queue_length = sum(queue_lengths) / len(queue_lengths) if queue_lengths else 0
     avg_wait_time = sum(wait_times) / len(wait_times) if wait_times else 0
     max_wait_time = max(wait_times) if wait_times else 0
@@ -96,6 +99,7 @@ def run_simulation(sim_duration=DEFAULT_SIM_DURATION,
     throughput = total_items_served / sim_duration
     utilization = sum(cashier_busy_time) / (num_cashiers * sim_duration) * 100
 
+    # -------------------- Print Summary (Performance Matricses--------------------
     print(f"\nTotal customers served in {sim_duration} minutes: {customers_served}")
     print(f"Total items served: {total_items_served}")
     print(f"Average queue length: {avg_queue_length:.2f}")
