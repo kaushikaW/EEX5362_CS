@@ -9,15 +9,20 @@ app = Flask(__name__)
 CORS(app)
 
 # Default Simulation Parameters
-DEFAULT_ARRIVAL_RATE = 2
-DEFAULT_SERVICE_TIME = 5      # base minutes per customer (before scaling)
-DEFAULT_NUM_CASHIERS = 1
-DEFAULT_SIM_DURATION = 60     # minutes
+DEFAULT_ARRIVAL_RATE = 1      # customers per minute
+DEFAULT_SERVICE_TIME = 5      # base service time per customer (mins)
+DEFAULT_NUM_CASHIERS = 1      # number of cashiers
+DEFAULT_SIM_DURATION = 60     # simulation time (mins)
 DEFAULT_BASKET_BEHAVIOR = "normal"   # "normal" or "seasonal"
+
 
 # -------------------- Basket Size Function --------------------
 def get_basket_size(basket_behavior="normal"):
-    """Returns basket size in number of items"""
+    # Returns a random basket size (number of items) based on shopping behavior:
+    # "normal" -> mostly small/medium baskets, few large
+    # "seasonal" -> more large baskets due to seasonal shopping
+    # default/unknown -> uniform distribution
+
     if basket_behavior == "normal":
         sizes = list(range(1, 21))
         weights = [5]*5 + [4]*5 + [1]*10  # small:50%, medium:40%, large:10%
@@ -103,7 +108,7 @@ def run_simulation(sim_duration=DEFAULT_SIM_DURATION,
     sys.stdout = old_stdout
 
     return (customers_served, avg_queue_length, avg_wait_time, max_wait_time,
-            max_queue_length, utilization, throughput, buffer.getvalue().splitlines())
+            max_queue_length, utilization, throughput, queue_lengths, buffer.getvalue().splitlines())
 
 # -------------------- Flask Routes --------------------
 @app.route("/run-simulation", methods=["GET"])
@@ -115,7 +120,7 @@ def simulate():
     basket_behavior = request.args.get("basket_behavior", default=DEFAULT_BASKET_BEHAVIOR, type=str)
 
     (total, avg_q, avg_wait, max_wait,
-     max_q, utilization, throughput, logs) = run_simulation(
+     max_q, utilization, throughput, queue_lengths, logs) = run_simulation(
         sim_duration=duration,
         num_cashiers=cashiers,
         arrival_rate=arrival,
@@ -132,40 +137,12 @@ def simulate():
         "cashier_utilization": utilization,
         "throughput": throughput,
         "basket_behavior": basket_behavior,
-        "logs": logs
+        "logs": logs,
+        "queue_lengths": queue_lengths   # <-- send to frontend
     })
 
-@app.route("/run-experiment", methods=["GET"])
-def run_experiment():
-    sim_duration = 600
-    arrival_rate = 3
-    service_time = DEFAULT_SERVICE_TIME
-    basket_behavior = request.args.get("basket_behavior", default=DEFAULT_BASKET_BEHAVIOR, type=str)
-    cashier_range = range(1, 6)
 
-    results = []
 
-    for cashiers in cashier_range:
-        (total_served, avg_q, avg_wait, max_wait,
-         max_q, utilization, throughput, logs) = run_simulation(
-            sim_duration=sim_duration,
-            num_cashiers=cashiers,
-            arrival_rate=arrival_rate,
-            base_service_time=service_time,
-            basket_behavior=basket_behavior
-        )
-        results.append({
-            "cashiers": cashiers,
-            "customers_served": total_served,
-            "avg_queue_length": avg_q,
-            "max_queue_length": max_q,
-            "avg_wait_time": avg_wait,
-            "max_wait_time": max_wait,
-            "cashier_utilization": utilization,
-            "throughput": throughput
-        })
-
-    return jsonify(results)
 
 if __name__ == "__main__":
     app.run(debug=True)
